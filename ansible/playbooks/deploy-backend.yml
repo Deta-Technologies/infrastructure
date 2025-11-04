@@ -18,7 +18,7 @@
     
     - name: Log in to GitHub Container Registry
       shell: |
-        echo "{{ github_token }}" | docker login {{ docker_registry }} -u {{ github_username }} --password-stdin
+        echo "{{ ghcr_token }}" | docker login {{ docker_registry }} -u {{ github_username }} --password-stdin
       no_log: true
     
     - name: Ensure MySQL container is running
