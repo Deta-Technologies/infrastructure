@@ -1,0 +1,55 @@
+---
+- name: Deploy Frontend
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Determine environment from tag
+      set_fact:
+        is_production: "{{ 'latest' in docker_image_tag }}"
+        container_name: "{{ 'frontend-prod' if 'latest' in docker_image_tag else 'frontend-dev' }}"
+        container_port: "{{ '3001' if 'latest' in docker_image_tag else '3000' }}"
+        network_name: "{{ 'app-network-prod' if 'latest' in docker_image_tag else 'app-network-dev' }}"
+        api_url: "{{ 'https://icu-api.darwishathibi.com' if 'latest' in docker_image_tag else 'https://icu-api-dev.darwishathibi.com' }}"
+    
+    - name: Log in to GitHub Container Registry
+      shell: |
+        echo "{{ github_token }}" | docker login {{ docker_registry }} -u {{ github_username }} --password-stdin
+      no_log: true
+    
+    - name: Pull latest frontend image
+      community.docker.docker_image:
+        name: "{{ docker_registry }}/{{ github_username }}/{{ frontend_image_name }}"
+        tag: "{{ docker_image_tag }}"
+        source: pull
+        force_source: yes
+    
+    - name: Stop and remove old frontend container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      ignore_errors: yes
+    
+    - name: Run new frontend container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_registry }}/{{ github_username }}/{{ frontend_image_name }}:{{ docker_image_tag }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ network_name }}"
+        ports:
+          - "127.0.0.1:{{ container_port }}:3000"
+        env:
+          NODE_ENV: production
+          PUBLIC_API_URL: "{{ api_url }}"
+    
+    - name: Prune old Docker images
+      community.docker.docker_prune:
+        images: yes
+        images_filters:
+          dangling: true
+    
+    - name: Display deployment status
+      debug:
+        msg: "Frontend deployed successfully to {{ container_name }}!"
