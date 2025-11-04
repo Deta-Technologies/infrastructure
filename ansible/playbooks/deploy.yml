@@ -1,0 +1,45 @@
+---
+- name: Deploy Applications
+  hosts: all
+  become: yes
+  become_user: "{{ deploy_user }}"
+  
+  vars:
+    deploy_user: deployer
+    app_directory: /opt/apps
+  
+  tasks:
+    - name: Log in to GitHub Container Registry
+      docker_login:
+        registry: "{{ docker_registry }}"
+        username: "{{ github_username }}"
+        password: "{{ github_token }}"
+    
+    - name: Copy docker-compose configuration
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ app_directory }}/docker-compose.yml"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0644'
+    
+    - name: Pull latest images
+      docker_compose:
+        project_src: "{{ app_directory }}"
+        pull: yes
+    
+    - name: Deploy services
+      docker_compose:
+        project_src: "{{ app_directory }}"
+        state: present
+        restarted: yes
+    
+    - name: Prune old Docker images
+      docker_prune:
+        images: yes
+        images_filters:
+          dangling: true
+    
+    - name: Display deployment status
+      debug:
+        msg: "Deployment completed successfully!"
