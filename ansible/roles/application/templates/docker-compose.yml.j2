@@ -1,0 +1,59 @@
+version: '{{ docker_compose_version }}'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: icu-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - {{ app_directory }}/mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - icu-network
+
+  backend:
+    image: ghcr.io/{{ github_org }}/icu-backend:latest
+    container_name: icu-backend
+    restart: unless-stopped
+    ports:
+      - "{{ backend_port }}:{{ backend_port }}"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:{{ backend_port }}
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - icu-network
+    volumes:
+      - {{ app_directory }}/logs:/app/logs
+
+  frontend:
+    image: ghcr.io/{{ github_org }}/icu-frontend:latest
+    container_name: icu-frontend
+    restart: unless-stopped
+    ports:
+      - "{{ frontend_port }}:{{ frontend_port }}"
+    environment:
+      - NODE_ENV=production
+      - PUBLIC_API_URL=https://{{ backend_domain }}
+      - PORT={{ frontend_port }}
+    depends_on:
+      - backend
+    networks:
+      - icu-network
+
+networks:
+  icu-network:
+    driver: bridge
