@@ -1,0 +1,50 @@
+---
+- name: Update apt cache
+  apt:
+      update_cache: yes
+      cache_valid_time: 3600
+
+- name: Upgrade all packages
+  apt:
+      upgrade: dist
+      autoremove: yes
+      autoclean: yes
+
+- name: Install required system packages
+  apt:
+      name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+          - git
+          - ufw
+          - python3-pip
+      state: present
+
+- name: Configure UFW (firewall)
+  block:
+      - name: Allow SSH
+        ufw:
+            rule: allow
+            port: "22"
+            proto: tcp
+
+      - name: Allow HTTP
+        ufw:
+            rule: allow
+            port: "80"
+            proto: tcp
+
+      - name: Allow HTTPS
+        ufw:
+            rule: allow
+            port: "443"
+            proto: tcp
+
+      - name: Enable UFW
+        ufw:
+            state: enabled
+            policy: deny

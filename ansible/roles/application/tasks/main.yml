@@ -1,0 +1,42 @@
+---
+- name: Create application directory
+  file:
+      path: "{{ app_directory }}"
+      state: directory
+      mode: "0755"
+
+- name: Create data directories
+  file:
+      path: "{{ item }}"
+      state: directory
+      mode: "0755"
+  loop:
+      - "{{ app_directory }}/mysql-data"
+      - "{{ app_directory }}/logs"
+
+- name: Deploy docker-compose.yml
+  template:
+      src: docker-compose.yml.j2
+      dest: "{{ app_directory }}/docker-compose.yml"
+      owner: root
+      group: root
+      mode: "0644"
+
+- name: Create .env file for sensitive data
+  copy:
+      dest: "{{ app_directory }}/.env"
+      content: |
+          MYSQL_ROOT_PASSWORD={{ mysql_root_password }}
+          MYSQL_DATABASE={{ mysql_database }}
+          MYSQL_USER={{ mysql_user }}
+          MYSQL_PASSWORD={{ mysql_password }}
+      owner: root
+      group: root
+      mode: "0600"
+
+- name: Log in to GitHub Container Registry
+  command: >
+      echo "{{ lookup('env', 'GITHUB_TOKEN') }}" | 
+      docker login ghcr.io -u {{ lookup('env', 'GITHUB_USERNAME') }} --password-stdin
+  no_log: true
+  changed_when: false

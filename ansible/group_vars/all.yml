@@ -1,0 +1,16 @@
+frontend_domain: icu.darwishathibi.com
+backend_domain: api-icu.darwishathibi.com
+
+frontend_port: 5173
+backend_port: 5141
+
+docker_compose_version: "3.8"
+
+mysql_root_password: "{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}"
+mysql_database: icu_db
+mysql_user: mandur_gede
+mysql_password: "{{ lookup('env', 'MYSQL_PASSWORD') }}"
+
+app_directory: /opt/icu_application
+
+github_org: Deta-Technologies

@@ -1,0 +1,32 @@
+---
+- name: Setup ICU Application Infrastructure
+  hosts: icu_server
+  become: yes
+
+  handlers:
+      - name: Reload Caddy
+        systemd:
+            name: caddy
+            state: reloaded
+
+  roles:
+      - common
+      - docker
+      - caddy
+      - application
+
+  tasks:
+      - name: Display completion message
+        debug:
+            msg: |
+                =====================================
+                Server setup complete!
+                =====================================
+                Frontend: https://{{ frontend_domain }}
+                Backend:  https://{{ backend_domain }}
+
+                Next steps:
+                1. Set up GitHub Actions in your repositories
+                2. Push to main branch to trigger deployment
+                3. Monitor logs: docker-compose -f {{ app_directory }}/docker-compose.yml logs -f
+

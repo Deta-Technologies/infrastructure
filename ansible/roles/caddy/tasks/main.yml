@@ -1,0 +1,55 @@
+---
+- name: Check if Caddy is already installed
+  command: caddy version
+  register: caddy_installed
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install Caddy
+  block:
+      - name: Add Caddy GPG key
+        apt_key:
+            url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
+            state: present
+
+      - name: Add Caddy repository
+        apt_repository:
+            repo: "deb https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
+            state: present
+            update_cache: yes
+
+      - name: Install Caddy
+        apt:
+            name: caddy
+            state: present
+
+      - name: Ensure Caddy service is running
+        systemd:
+            name: caddy
+            state: started
+            enabled: yes
+  when: caddy_installed.rc != 0
+
+- name: Create Caddy configuration directory
+  file:
+      path: /etc/caddy
+      state: directory
+      mode: "0755"
+
+- name: Deploy Caddyfile
+  template:
+      src: Caddyfile.j2
+      dest: /etc/caddy/Caddyfile
+      owner: root
+      group: root
+      mode: "0644"
+  notify: Reload Caddy
+
+- name: Verify Caddy configuration
+  command: caddy validate --config /etc/caddy/Caddyfile
+  register: caddy_validate
+  changed_when: false
+
+- name: Display Caddy validation result
+  debug:
+      msg: "{{ caddy_validate.stdout }}"
