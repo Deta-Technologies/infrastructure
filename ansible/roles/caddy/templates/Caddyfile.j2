@@ -3,11 +3,6 @@
     reverse_proxy localhost:{{ frontend_port }}
     
     encode gzip
-    
-    log {
-        output file /var/log/caddy/frontend.log
-        format json
-    }
 }
 
 # Backend - ASP.NET API
@@ -19,12 +14,7 @@
     # CORS headers (optional, since your API handles CORS)
     header {
         Access-Control-Allow-Origin *
-        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
         Access-Control-Allow-Headers *
-    }
-    
-    log {
-        output file /var/log/caddy/backend.log
-        format json
     }
 }
